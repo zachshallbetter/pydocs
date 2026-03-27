@@ -30,6 +30,21 @@ VALUE = 1
             payload = json.loads(result.stdout)
             self.assertEqual(payload[0]["attachedToContext"]["qualifiedName"], "VALUE")
 
+    def test_extract_stdin_compact(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-m", "pydocs", "extract", "--stdin", "--compact"],
+            input="""
+# @associated doc:stdin.md
+VALUE = 1
+""",
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload[0]["tags"][0]["normalizedValue"], "doc:stdin.md")
+
 
 if __name__ == "__main__":
     unittest.main()

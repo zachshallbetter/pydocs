@@ -98,6 +98,13 @@ def _qualified_name(parts: list[str], node_name: str | None) -> str | None:
     return ".".join([*parts, node_name])
 
 
+def _module_qualified_name(filename: str) -> str:
+    path = Path(filename)
+    if path.name == "__init__.py" and path.parent.name:
+        return path.parent.name
+    return path.stem or "module"
+
+
 def _parse_tag_lines(text: str) -> list[tuple[str, str]]:
     tags: list[tuple[str, str]] = []
     for line in text.splitlines():
@@ -137,32 +144,32 @@ def _comment_tags_for_node(source: str, node_start: int) -> list[tuple[int, str]
     return block
 
 
-def _emit_nodes(
+def _emit_node(
     *,
     node_kind: str,
-    start_line: int,
+    line: int,
     end_line: int,
     context: AssociationContext,
-    raw_tags: Iterable[tuple[int, str, str]],
-) -> list[AssociationNode]:
-    nodes: list[AssociationNode] = []
-    for line_no, tag, value in raw_tags:
-        nodes.append(
-            AssociationNode(
-                line=line_no,
-                endLine=end_line if node_kind != "assignment" else line_no,
-                kind="pydoc",
-                tags=(
-                    AssociationTag(
-                        tag=tag,
-                        value=value,
-                        normalizedValue=normalize_tag_value(tag, value),
-                    ),
-                ),
-                attachedToContext=context,
-            )
+    raw_tags: Iterable[tuple[str, str]],
+) -> AssociationNode | None:
+    tags = tuple(
+        AssociationTag(
+            tag=tag,
+            value=value,
+            normalizedValue=normalize_tag_value(tag, value),
         )
-    return nodes
+        for tag, value in raw_tags
+    )
+    if not tags:
+        return None
+
+    return AssociationNode(
+        line=line,
+        endLine=end_line if node_kind != "assignment" else line,
+        kind="pydoc",
+        tags=tags,
+        attachedToContext=context,
+    )
 
 
 def extract_associations(source: str, *, filename: str = "<string>") -> list[AssociationNode]:
@@ -175,19 +182,19 @@ def extract_associations(source: str, *, filename: str = "<string>") -> list[Ass
         if isinstance(node, ast.Module):
             doc_node = _docstring_node(node)
             if doc_node is not None:
-                context = AssociationContext(kind="module", qualifiedName=Path(filename).stem)
+                context = AssociationContext(kind="module", qualifiedName=_module_qualified_name(filename))
                 start = getattr(doc_node, "lineno", 1)
                 end = getattr(doc_node, "end_lineno", start)
                 raw_doc = ast.get_docstring(node, clean=False) or ""
-                nodes.extend(
-                    _emit_nodes(
-                        node_kind="module",
-                        start_line=start,
-                        end_line=end,
-                        context=context,
-                        raw_tags=((start, tag, value) for tag, value in _parse_tag_lines(raw_doc)),
-                    )
+                node_out = _emit_node(
+                    node_kind="module",
+                    line=start,
+                    end_line=end,
+                    context=context,
+                    raw_tags=_parse_tag_lines(raw_doc),
                 )
+                if node_out is not None:
+                    nodes.append(node_out)
 
             for child in node.body:
                 visit(child, stack)
@@ -208,31 +215,31 @@ def extract_associations(source: str, *, filename: str = "<string>") -> list[Ass
             raw_doc = ast.get_docstring(node, clean=False) or ""
             doc_start = getattr(doc_node, "lineno", start)
             doc_end = getattr(doc_node, "end_lineno", doc_start)
-            nodes.extend(
-                _emit_nodes(
-                    node_kind=context.kind,
-                    start_line=doc_start,
-                    end_line=doc_end,
-                    context=context,
-                    raw_tags=((doc_start, tag, value) for tag, value in _parse_tag_lines(raw_doc)),
-                )
+            node_out = _emit_node(
+                node_kind=context.kind,
+                line=doc_start,
+                end_line=doc_end,
+                context=context,
+                raw_tags=_parse_tag_lines(raw_doc),
             )
+            if node_out is not None:
+                nodes.append(node_out)
 
         comment_block = _comment_tags_for_node(source, start)
         if comment_block:
-            raw_tags = []
-            for line_no, text in comment_block:
-                for tag, value in _parse_tag_lines(text):
-                    raw_tags.append((line_no, tag, value))
-            nodes.extend(
-                _emit_nodes(
-                    node_kind=context.kind,
-                    start_line=start,
-                    end_line=end,
-                    context=context,
-                    raw_tags=raw_tags,
-                )
+            comment_line = comment_block[0][0]
+            raw_tags: list[tuple[str, str]] = []
+            for _, text in comment_block:
+                raw_tags.extend(_parse_tag_lines(text))
+            node_out = _emit_node(
+                node_kind=context.kind,
+                line=comment_line,
+                end_line=end,
+                context=context,
+                raw_tags=raw_tags,
             )
+            if node_out is not None:
+                nodes.append(node_out)
 
         next_stack = stack + ([node_name] if node_name else [])
         for child in ast.iter_child_nodes(node):

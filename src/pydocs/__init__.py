@@ -1,6 +1,6 @@
 """PYDocs package."""
 
-from .extractor import extract_associations
+from .api import extract_file, extract_json, extract_text
 from .models import AssociationContext, AssociationNode, AssociationTag
 
 __all__ = [
@@ -8,7 +8,9 @@ __all__ = [
     "AssociationContext",
     "AssociationNode",
     "AssociationTag",
-    "extract_associations",
+    "extract_file",
+    "extract_json",
+    "extract_text",
 ]
 
 __version__ = "0.1.0"

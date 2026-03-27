@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import json
 import sys
 
-from .extractor import extract_associations_json
+from .api import extract_file, extract_text
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -14,7 +14,9 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     extract = subparsers.add_parser("extract", help="Extract associations from a Python file")
-    extract.add_argument("path", type=Path, help="Python source file to parse")
+    extract.add_argument("path", nargs="?", help="Python source file to parse")
+    extract.add_argument("--stdin", action="store_true", help="Read source from stdin instead of a file path")
+    extract.add_argument("--compact", action="store_true", help="Emit compact JSON")
 
     return parser
 
@@ -24,8 +26,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     if args.command == "extract":
-        source = args.path.read_text(encoding="utf-8")
-        sys.stdout.write(extract_associations_json(source, filename=str(args.path)))
+        if args.stdin:
+            source = sys.stdin.read()
+            payload = [node.to_dict() for node in extract_text(source, filename="<stdin>")]
+        else:
+            if args.path is None:
+                parser.error("path is required unless --stdin is set")
+            payload = [node.to_dict() for node in extract_file(args.path)]
+
+        if args.compact:
+            sys.stdout.write(json.dumps(payload, separators=(",", ":")))
+        else:
+            sys.stdout.write(json.dumps(payload, indent=2))
         sys.stdout.write("\n")
         return 0
 

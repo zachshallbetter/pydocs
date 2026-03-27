@@ -31,10 +31,27 @@ python3.11 -m venv .venv
 python -m pydocs extract path/to/file.py
 ```
 
+## Public API
+
+```python
+from pydocs import extract_file, extract_json, extract_text
+```
+
+- `extract_text(source, filename="<string>")` parses Python source text.
+- `extract_file(path)` reads a file and extracts associations.
+- `extract_json(source, filename="<string>")` returns a JSON string.
+
+## CLI
+
+```bash
+pydocs extract path/to/file.py
+pydocs extract --stdin --compact < path/to/file.py
+```
+
 ## Example
 
 ```python
-from pydocs import extract_associations
+from pydocs import extract_text
 
 source = """
 def authenticate(token: str) -> str:
@@ -47,13 +64,15 @@ def authenticate(token: str) -> str:
     return token
 """
 
-nodes = extract_associations(source, filename="auth.py")
+nodes = extract_text(source, filename="auth.py")
 ```
 
 ## Project Layout
 
 - `docs/spec/pydocs.md` - PYDocs authoring and attachment rules.
 - `docs/spec/association-node.md` - Canonical transport schema.
+- `docs/architecture.md` - Extraction pipeline overview.
+- `docs/api.md` - Public API reference.
 - `src/pydocs/` - Python package and extraction tooling.
 - `tests/` - Contract and parser tests.
 

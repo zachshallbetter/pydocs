@@ -65,8 +65,10 @@ Attachment rules must be explicit and deterministic.
 2. A class docstring attaches to the class.
 3. A function or async function docstring attaches to that function.
 4. A method docstring attaches to that method.
-5. A line-anchored comment attaches to the next supported declaration or assignment.
-6. Unknown targets are rejected during extraction.
+5. A docstring or comment above a decorator attaches to the decorated definition.
+6. A line-anchored comment attaches to the next supported declaration or assignment.
+7. `__init__.py` resolves to the containing package name for module context.
+8. Unknown targets are rejected during extraction.
 
 ## Extraction Contract
 
@@ -76,7 +78,8 @@ The worker should:
 2. Preserve source positions.
 3. Resolve node kind and qualified name.
 4. Normalize tag names and values.
-5. Emit `AssociationNode[]`.
+5. Emit one `AssociationNode` per attachment region, preserving all tags for that region.
+6. Emit `AssociationNode[]`.
 
 ## Non-Goals
 

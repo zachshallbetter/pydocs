@@ -7,3 +7,6 @@
 - PYDocs authoring spec.
 - Python extraction library.
 - CLI for JSON extraction.
+- Public API module.
+- `stdin` and compact CLI modes.
+- Decorator-aware comment attachment.
