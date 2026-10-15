@@ -1,6 +1,6 @@
 # Stage 1: warn-only
 #
-# DEF-* convention audit — runs the S2Forge predicate scanner against this
+# DEF-* convention audit — runs the Titan predicate scanner against this
 # component repo. Per Security/definitions/ENFORCEMENT.md, this gate is
 # warn-only at Stage 1: critical/major findings print to the run log but
 # the job does not block PRs. Stage 4 cutover (org-level) flips
@@ -8,12 +8,12 @@
 #
 # Cross-repo wiring: this workflow checks out the Security repo as a
 # sibling and invokes its predicate scanner. The scanner reads
-# `S2FORGE_ROOT` to locate component sources — set to the component
+# `TITAN_ROOT` to locate component sources — set to the component
 # checkout so components are scanned in place.
 #
 # Setup required (one-time, org-level):
 #   Set repo or org-level variable SECURITY_REPO to "<org>/<security-repo>"
-#   (e.g. "Sparks-Foundry/security"). If the Security repo is private,
+#   (e.g. "AcmeProductCo/security"). If the Security repo is private,
 #   also set a secret SECURITY_REPO_TOKEN to a PAT with read access.
 # Without SECURITY_REPO set, the job no-ops with a warning — no false fail.
 
@@ -65,10 +65,10 @@ jobs:
       - name: Run DEF-* predicate scan
         if: steps.sec.outputs.skip != 'true'
         env:
-          S2FORGE_ROOT: ${{ github.workspace }}/component
-          S2FORGE_SCAN_DIR: ${{ github.workspace }}/.scan-out
+          TITAN_ROOT: ${{ github.workspace }}/component
+          TITAN_SCAN_DIR: ${{ github.workspace }}/.scan-out
         run: |
-          mkdir -p "$S2FORGE_SCAN_DIR"
+          mkdir -p "$TITAN_SCAN_DIR"
           # The scanner reads components.txt; for a per-repo run, discover
           # components by finding src/main.rs entries under the component
           # repo and emit a synthetic components.txt that points at them.
@@ -77,24 +77,24 @@ jobs:
             find . -mindepth 2 -maxdepth 5 -name main.rs -path "*/src/main.rs" \
               | sed "s|^\./||; s|/src/main.rs$||" \
               | sort
-          ) > "$S2FORGE_SCAN_DIR/components.txt"
+          ) > "$TITAN_SCAN_DIR/components.txt"
           echo "Components discovered:"
-          sed "s/^/  /" "$S2FORGE_SCAN_DIR/components.txt"
-          if [ ! -s "$S2FORGE_SCAN_DIR/components.txt" ]; then
+          sed "s/^/  /" "$TITAN_SCAN_DIR/components.txt"
+          if [ ! -s "$TITAN_SCAN_DIR/components.txt" ]; then
             echo "::notice::No Rust components (src/main.rs) found in this repo — DEF-* gate is a no-op here."
             exit 0
           fi
-          export S2FORGE_COMPONENTS="$S2FORGE_SCAN_DIR/components.txt"
+          export TITAN_COMPONENTS="$TITAN_SCAN_DIR/components.txt"
           python3 Security/definitions/def_predicate_scan.py || true
 
       - name: Gate on severity
         if: steps.sec.outputs.skip != 'true'
         env:
-          S2FORGE_SCAN_DIR: ${{ github.workspace }}/.scan-out
+          TITAN_SCAN_DIR: ${{ github.workspace }}/.scan-out
         run: |
           python3 - <<'PY'
           import json, os, sys
-          path = os.path.join(os.environ.get("S2FORGE_SCAN_DIR", ".scan-out"), "findings.jsonl")
+          path = os.path.join(os.environ.get("TITAN_SCAN_DIR", ".scan-out"), "findings.jsonl")
           if not os.path.exists(path):
               print("No findings.jsonl produced; nothing to gate.")
               sys.exit(0)
