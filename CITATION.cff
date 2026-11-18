@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "PYDocs"
+abstract: >-
+  A Python-side metadata contract for deterministic documentation extraction, with a Python
+  extraction library and CLI that emit the shared AssociationNode transport shape.
+type: software
+authors:
+  - family-names: Shallbetter
+    given-names: Zach
+version: "0.1.0"
+license: MIT
+repository-code: "https://github.com/zachshallbetter/pydocs"

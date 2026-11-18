@@ -79,3 +79,15 @@ nodes = extract_text(source, filename="auth.py")
 ## Status
 
 This repository ships a minimal, usable extraction implementation. It can grow without changing the public schema.
+
+## Verify
+
+```bash
+python -m unittest discover
+```
+
+CI runs this on every pull request. The tests cover the extractor and the CLI (`tests/test_extractor.py`, `tests/test_cli.py`).
+
+## License
+
+MIT. See [LICENSE](LICENSE).

@@ -1,0 +1,38 @@
+name: Bug report
+description: Extraction, the CLI or the public API is not behaving as documented.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: PYDocs version
+      description: The version from `pip show pydocs`, or the commit if installed from a clone.
+      placeholder: pydocs 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What should have happened. Quote the spec section in `docs/spec/` if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: The Python source, the command or API call, and the output.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: Python version, operating system
