@@ -24,10 +24,15 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   def-audit:
     name: Run DEF-* predicate scan
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     continue-on-error: true  # Stage 1: warn-only
     steps:
       - name: Checkout this component repo
